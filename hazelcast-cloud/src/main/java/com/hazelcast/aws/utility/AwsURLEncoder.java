@@ -26,12 +26,10 @@ public final class AwsURLEncoder {
     }
 
     public static String urlEncode(String string) {
-        String encoded;
         try {
-            encoded = URLEncoder.encode(string, "UTF-8").replace("+", "%20");
+            return URLEncoder.encode(string, "UTF-8").replace("+", "%20");
         } catch (UnsupportedEncodingException e) {
             throw new HazelcastException(e);
         }
-        return encoded;
     }
 }

@@ -22,21 +22,17 @@ import com.hazelcast.config.AwsConfig;
 import java.util.Collection;
 import java.util.Map;
 
+import static com.hazelcast.util.Preconditions.checkTrue;
+
 public class AWSClient {
 
     private String endpoint;
     private final AwsConfig awsConfig;
 
     public AWSClient(AwsConfig awsConfig) {
-        if (awsConfig == null) {
-            throw new IllegalArgumentException("AwsConfig is required!");
-        }
-        if (awsConfig.getAccessKey() == null) {
-            throw new IllegalArgumentException("AWS access key is required!");
-        }
-        if (awsConfig.getSecretKey() == null) {
-            throw new IllegalArgumentException("AWS secret key is required!");
-        }
+        checkTrue(awsConfig != null, "AwsConfig is required!");
+        checkTrue(awsConfig.getAccessKey() != null, "AWS access key is required!");
+        checkTrue(awsConfig.getSecretKey() != null, "AWS secret key is required!");
         this.awsConfig = awsConfig;
         endpoint = awsConfig.getHostHeader();
         if (awsConfig.getRegion() != null && awsConfig.getRegion().length() > 0) {
@@ -45,8 +41,7 @@ public class AWSClient {
     }
 
     public Collection<String> getPrivateIpAddresses() throws Exception {
-        final Map<String, String> result = new DescribeInstances(awsConfig, endpoint).execute();
-        return result.keySet();
+        return getAddresses().keySet();
     }
 
     public Map<String, String> getAddresses() throws Exception {

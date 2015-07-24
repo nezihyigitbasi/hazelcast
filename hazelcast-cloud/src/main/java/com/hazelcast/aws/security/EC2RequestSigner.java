@@ -33,6 +33,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static com.hazelcast.util.Preconditions.checkTrue;
+
 /**
  * Created by igmar on 03/11/14.
  */
@@ -49,22 +51,17 @@ public class EC2RequestSigner {
     private String endpoint;
     private byte[] signingKey;
 
-    public EC2RequestSigner(AwsConfig config, final String timeStamp, String endpoint) {
-        if (config == null) {
-            throw new IllegalArgumentException("config cannot be null");
-        }
-        if (timeStamp == null) {
-            throw new IllegalArgumentException("timeStamp cannot be null");
-        }
+    public EC2RequestSigner(AwsConfig config, String timeStamp, String endpoint) {
+        checkTrue(config != null, "config cannot be null");
+        checkTrue(timeStamp != null, "timeStamp cannot be null");
         this.config = config;
         this.timestamp = timeStamp;
-        this.service = null;
         this.endpoint = endpoint;
     }
 
     public String getCredentialScope() {
         // datestamp/region/service/API_TERMINATOR
-        final String dateStamp = timestamp.substring(0, 8);
+        final String dateStamp = timestamp.substring(0, LAST_INDEX);
         return String.format("%s/%s/%s/%s", dateStamp, config.getRegion(), this.service, API_TERMINATOR);
     }
 
@@ -73,13 +70,8 @@ public class EC2RequestSigner {
     }
 
     public String sign(String service, Map<String, String> attributes) {
-        if (service == null) {
-            throw new IllegalArgumentException("service cannot be null");
-        }
-        if (attributes == null) {
-            throw new IllegalArgumentException("attributes cannot be null");
-        }
-
+        checkTrue(service != null, "service cannot be null");
+        checkTrue(attributes != null, "attributes cannot be null");
         this.service = service;
         this.attributes = attributes;
         canonicalRequest = getCanonicalizedRequest();
@@ -154,9 +146,7 @@ public class EC2RequestSigner {
             final Mac mSigning = Mac.getInstance("HmacSHA256");
             final SecretKeySpec skSigning = new SecretKeySpec(kService, "HmacSHA256");
             mSigning.init(skSigning);
-            final byte[] kSigning = mSigning.doFinal("aws4_request".getBytes("UTF-8"));
-
-            return kSigning;
+            return mSigning.doFinal("aws4_request".getBytes("UTF-8"));
         } catch (NoSuchAlgorithmException e) {
             return null;
         } catch (InvalidKeyException e) {
@@ -167,7 +157,7 @@ public class EC2RequestSigner {
     }
 
     private String createSignature(String stringToSign, byte[] signingKey) {
-        byte[] signature = null;
+        byte[] signature;
         try {
             final Mac signMac = Mac.getInstance("HmacSHA256");
             final SecretKeySpec signKS = new SecretKeySpec(signingKey, "HmacSHA256");
@@ -219,7 +209,7 @@ public class EC2RequestSigner {
 
 
     private String sha256Hashhex(final String in) {
-        String payloadHash = "";
+        String payloadHash;
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(in.getBytes("UTF-8"));

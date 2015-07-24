@@ -43,20 +43,7 @@ public final class CloudyUtility {
     private CloudyUtility() {
     }
 
-    public static String getQueryString(Map<String, String> attributes) {
-        StringBuilder query = new StringBuilder();
-        for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-            final String value = entry.getValue();
-            query.append(AwsURLEncoder.urlEncode(entry.getKey())).append("=").append(AwsURLEncoder.urlEncode(value)).append("&");
-        }
-        String result = query.toString();
-        if (result != null && !result.equals("")) {
-            result = "?" + result.substring(0, result.length() - 1);
-        }
-        return result;
-    }
-
-    public static Map<String, String> unmarshalTheResponse(InputStream stream, AwsConfig awsConfig) throws IOException {
+    public static Map<String, String> unmarshalTheResponse(InputStream stream, AwsConfig awsConfig) {
         return parseAddresses(stream, awsConfig);
     }
 
