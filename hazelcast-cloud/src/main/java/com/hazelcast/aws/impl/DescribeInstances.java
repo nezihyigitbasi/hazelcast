@@ -30,22 +30,25 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import static com.hazelcast.aws.impl.Constants.DOC_VERSION;
+import static com.hazelcast.aws.impl.Constants.GET;
 import static com.hazelcast.aws.impl.Constants.SIGNATURE_METHOD_V4;
+import static com.hazelcast.util.Preconditions.checkTrue;
 
 public class DescribeInstances {
-    String timeStamp = getFormattedTimestamp();
+    //TODO make configurable
+    private static final int READ_TIMEOUT = 5000;
+    private static final int CONNECT_TIMEOUT = 5000;
+
+    private String timeStamp = getFormattedTimestamp();
     private EC2RequestSigner rs;
     private AwsConfig awsConfig;
     private String endpoint;
     private Map<String, String> attributes = new HashMap<String, String>();
 
     public DescribeInstances(AwsConfig awsConfig, String endpoint) {
-        if (awsConfig == null) {
-            throw new IllegalArgumentException("AwsConfig is required!");
-        }
-        if (awsConfig.getAccessKey() == null) {
-            throw new IllegalArgumentException("AWS access key is required!");
-        }
+        checkTrue(awsConfig != null, "AwsConfig is required!");
+        checkTrue(awsConfig.getAccessKey() != null, "AWS access key is required!");
+
         this.awsConfig = awsConfig;
         this.endpoint = endpoint;
 
@@ -68,15 +71,21 @@ public class DescribeInstances {
     public Map<String, String> execute() throws Exception {
         final String signature = rs.sign("ec2", attributes);
         attributes.put("X-Amz-Signature", signature);
-        InputStream stream = callService(endpoint, signature);
-        return CloudyUtility.unmarshalTheResponse(stream, awsConfig);
+        InputStream stream = callService(endpoint);
+        try {
+            return CloudyUtility.unmarshalTheResponse(stream, awsConfig);
+        } finally {
+            stream.close();
+        }
     }
 
-    private InputStream callService(String endpoint, String signature) throws Exception {
+    private InputStream callService(String endpoint) throws Exception {
         String query = rs.getCanonicalizedQueryString(attributes);
         URL url = new URL("https", endpoint, -1, "/?" + query);
         HttpURLConnection httpConnection = (HttpURLConnection) (url.openConnection());
-        httpConnection.setRequestMethod(Constants.GET);
+        httpConnection.setConnectTimeout(CONNECT_TIMEOUT);
+        httpConnection.setReadTimeout(READ_TIMEOUT);
+        httpConnection.setRequestMethod(GET);
         httpConnection.setDoOutput(false);
         httpConnection.connect();
         return httpConnection.getInputStream();
